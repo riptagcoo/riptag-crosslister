@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Riptag Crosslister</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080810;
+    --s1: #0f0f18;
+    --s2: #16161f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --ink: #eeeef5;
+    --muted: #7a7a90;
+    --faint: #3a3a50;
+    --surf: #1ec8a0;
+    --surf-bg: rgba(30,200,160,0.1);
+    --surf-bd: rgba(30,200,160,0.3);
+    --violet: #8b7fff;
+    --violet-bg: rgba(139,127,255,0.1);
+    --violet-bd: rgba(139,127,255,0.3);
+    --red: #ff5c5c;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Instrument Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Subtle noise overlay */
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    opacity: 0.5;
+  }
+
+  .shell {
+    max-width: 1140px; margin: 0 auto; padding: 0 24px;
+    position: relative; z-index: 1;
+  }
+
+  /* Nav */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .nav-brand { display: flex; align-items: center; gap: 11px; }
+  .nav-icon {
+    width: 36px; height: 36px; background: var(--surf); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    flex-shrink: 0;
+  }
+  .nav-name { font-size: 16px; font-weight: 600; }
+  .nav-tag { font-size: 12px; color: var(--muted); }
+  .nav-pills { display: flex; gap: 8px; }
+  .pill {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px;
+    border: 1px solid var(--border2); color: var(--muted); font-family: var(--mono);
+    cursor: default;
+  }
+  .pill.live { color: var(--surf); border-color: var(--surf-bd); background: var(--surf-bg); }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .span2 { grid-column: span 2; }
+
+  /* Cards */
+  .card {
+    background: var(--s2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px 22px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-title .ct-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--faint); }
+
+  /* Account cards */
+  .acct-detected {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  .avatar.src { background: var(--surf-bg); color: var(--surf); border: 1px solid var(--surf-bd); }
+  .avatar.dst { background: var(--violet-bg); color: var(--violet); border: 1px solid var(--violet-bd); }
+  .avatar.empty { background: var(--s2); color: var(--faint); border: 1px solid var(--border); }
+  .acct-info { flex: 1; min-width: 0; }
+  .acct-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acct-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .acct-badge {
+    padding: 4px 10px; border-radius: 6px; font-family: var(--mono); font-size: 11px;
+  }
+  .acct-badge.src { background: var(--surf-bg); color: var(--surf); border: 1px solid var(--surf-bd); }
+  .acct-badge.dst { background: var(--violet-bg); color: var(--violet); border: 1px solid var(--violet-bd); }
+  .acct-badge.none { background: transparent; color: var(--faint); border: 1px solid var(--border); }
+
+  .install-note {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .install-note strong { color: var(--surf); font-weight: 500; }
+
+  /* Stats */
+  .stat-card {
+    background: var(--s2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .stat-n { font-size: 28px; font-weight: 600; color: var(--ink); line-height: 1; }
+  .stat-n.green { color: var(--surf); }
+  .stat-n.violet { color: var(--violet); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: var(--mono); }
+
+  /* Action row */
+  .action-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 9px; font-size: 13px;
+    font-weight: 600; font-family: var(--sans); cursor: pointer;
+    border: 1px solid var(--border2); background: var(--s2); color: var(--ink);
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--surf); color: var(--surf); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.primary { background: var(--surf); color: #082820; border-color: var(--surf); }
+  .btn.primary:hover:not(:disabled) { background: #18b890; }
+  .btn.ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+  .btn.ghost:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+  .spacer { flex: 1; }
+
+  /* Progress */
+  .prog-wrap { margin-bottom: 14px; }
+  .prog-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+  .prog-track { height: 3px; background: var(--s2); border-radius: 2px; overflow: hidden; border: 1px solid var(--border); }
+  .prog-fill { height: 100%; background: linear-gradient(90deg, var(--surf), var(--violet)); width: 0%; transition: width 0.4s; }
+
+  /* Log */
+  .log-box {
+    background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; height: 130px; overflow-y: auto;
+    font-family: var(--mono); font-size: 11.5px; display: flex; flex-direction: column; gap: 3px;
+  }
+  .log-box::-webkit-scrollbar { width: 3px; }
+  .log-box::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 2px; }
+  .log-entry { color: var(--muted); }
+  .log-entry.ok { color: var(--surf); }
+  .log-entry.err { color: var(--red); }
+  .log-entry.hi { color: var(--ink); }
+
+  /* Table */
+  .tbl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tbl-actions { display: flex; gap: 6px; }
+  .btn-sm {
+    padding: 5px 10px; font-size: 11px; border-radius: 7px; font-family: var(--mono);
+    border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .btn-sm:hover { color: var(--ink); border-color: var(--border2); }
+  .btn-sm.danger:hover { color: var(--red); border-color: var(--red); }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-weight: 400;
+    text-align: left; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  tbody tr { border-top: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: var(--s1); }
+  tbody td { padding: 10px 12px; font-size: 13px; }
+
+  .thumb {
+    width: 36px; height: 36px; border-radius: 7px;
+    background: var(--s1); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    overflow: hidden;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+  .item-name { font-weight: 500; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-desc { font-size: 11px; color: var(--muted); margin-top: 2px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mono-cell { font-family: var(--mono); }
+
+  .badge { display: inline-flex; padding: 3px 9px; border-radius: 5px; font-family: var(--mono); font-size: 11px; }
+  .badge-done { background: var(--surf-bg); color: var(--surf); border: 1px solid var(--surf-bd); }
+  .badge-pend { background: transparent; color: var(--faint); border: 1px solid var(--border); }
+
+  .empty-state { text-align: center; padding: 40px 0; color: var(--muted); font-size: 13px; }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  input[type="checkbox"] { accent-color: var(--surf); cursor: pointer; width: 15px; height: 15px; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .grid4 { grid-template-columns: 1fr 1fr; }
+    .span2 { grid-column: span 1; }
+    .action-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-icon">🏄</div>
+      <div>
+        <div class="nav-name">Riptag Crosslister</div>
+        <div class="nav-tag">Depop → Depop</div>
+      </div>
+    </div>
+    <div class="nav-pills">
+      <div class="pill" id="srv-pill">server</div>
+      <div class="pill live" id="live-pill" style="display:none;">● live</div>
+    </div>
+  </nav>
+
+  <!-- Accounts -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot"></span>Source account</div>
+      <div id="src-acct">
+        <div class="acct-detected">
+          <div class="avatar empty">?</div>
+          <div class="acct-info">
+            <div class="acct-name" style="color:var(--faint);">Not connected</div>
+            <div class="acct-sub">Install extension on this Chrome profile</div>
+          </div>
+          <span class="acct-badge none">source</span>
+        </div>
+      </div>
+      <div class="install-note">
+        <strong>Step 1:</strong> Log into Depop as your source account →
+        Open the extension → select <strong>Source</strong> → click Connect
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot"></span>Destination account</div>
+      <div id="dst-acct">
+        <div class="acct-detected">
+          <div class="avatar empty">?</div>
+          <div class="acct-info">
+            <div class="acct-name" style="color:var(--faint);">Not connected</div>
+            <div class="acct-sub">Install extension on alternate Chrome profile</div>
+          </div>
+          <span class="acct-badge none">target</span>
+        </div>
+      </div>
+      <div class="install-note">
+        <strong>Step 2:</strong> Log into Depop as your destination account →
+        Open the extension → select <strong>Target</strong> → click Connect
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid4" style="margin-bottom:14px;">
+    <div class="stat-card"><div class="stat-n" id="s-total">0</div><div class="stat-lbl">scraped</div></div>
+    <div class="stat-card"><div class="stat-n green" id="s-done">0</div><div class="stat-lbl">crosslisted</div></div>
+    <div class="stat-card"><div class="stat-n" id="s-pend">0</div><div class="stat-lbl">pending</div></div>
+    <div class="stat-card"><div class="stat-n violet" id="s-sel">0</div><div class="stat-lbl">selected</div></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="action-row">
+    <button class="btn" id="btn-scrape" onclick="doScrape()">🔍 Scrape listings</button>
+    <button class="btn primary" id="btn-xlist" onclick="doCrosslist()" disabled>🚀 Crosslist selected</button>
+    <button class="btn ghost" onclick="doReset()">↺ Reset status</button>
+    <div class="spacer"></div>
+    <button class="btn-sm" onclick="doSelectAll()">All</button>
+    <button class="btn-sm" onclick="doSelectNone()">None</button>
+    <button class="btn-sm danger" onclick="doClearData()">Clear data</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="prog-wrap" id="prog-wrap" style="display:none;">
+    <div class="prog-label" id="prog-lbl">—</div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+
+  <!-- Log + Table -->
+  <div class="grid2" style="margin-bottom:14px;">
+    <div class="card span2">
+      <div class="tbl-header">
+        <div class="card-title" style="margin:0;"><span class="ct-dot"></span>Live log</div>
+        <button class="btn-sm" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-box" id="log">
+        <div class="log-entry hi">Ready. Connect both accounts via the Chrome extension.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tbl-header">
+      <div class="card-title" style="margin:0;"><span class="ct-dot"></span>Listings</div>
+    </div>
+    <div id="tbl"></div>
+  </div>
+
+</div>
+
+<script>
+let listings = [];
+let selected = new Set();
+
+function log(msg, type='') {
+  if (!msg) return;
+  const box = document.getElementById('log');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + type;
+  const t = new Date().toLocaleTimeString();
+  el.textContent = `[${t}] ${msg}`;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+function setProgress(pct, label) {
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-lbl').textContent = label;
+}
+
+function updateStats() {
+  const done = listings.filter(l => l.crosslisted).length;
+  document.getElementById('s-total').textContent = listings.length;
+  document.getElementById('s-done').textContent = done;
+  document.getElementById('s-pend').textContent = listings.length - done;
+  document.getElementById('s-sel').textContent = selected.size;
+  document.getElementById('btn-xlist').disabled = listings.length === 0;
+}
+
+function renderAccount(id, data, role) {
+  const el = document.getElementById(id);
+  if (!data || !data.connected) return;
+  const initials = data.username.substring(0, 2).toUpperCase();
+  const cls = role === 'src' ? 'src' : 'dst';
+  const label = role === 'src' ? 'source' : 'target';
+  const time = data.connectedAt ? new Date(data.connectedAt).toLocaleTimeString() : '';
+  el.innerHTML = `
+    <div class="acct-detected">
+      <div class="avatar ${cls}">${initials}</div>
+      <div class="acct-info">
+        <div class="acct-name">@${data.username}</div>
+        <div class="acct-sub">Connected ${time}</div>
+      </div>
+      <span class="acct-badge ${cls}">${label}</span>
+    </div>
+  `;
+}
+
+function renderTable() {
+  const tbl = document.getElementById('tbl');
+  if (!listings.length) {
+    tbl.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div>No listings scraped yet.</div>`;
+    return;
+  }
+  tbl.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26px"></th>
+          <th style="width:44px">Photo</th>
+          <th>Item</th>
+          <th>Price</th>
+          <th>Size</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${listings.map(l => `
+          <tr onclick="toggle('${l.id}')">
+            <td><input type="checkbox" ${selected.has(l.id)?'checked':''} onclick="event.stopPropagation();toggle('${l.id}')"/></td>
+            <td>
+              <div class="thumb">
+                ${l.localPhotos?.length ? `<img src="/photos/${l.id}_0.jpg" onerror="this.style.display='none'" alt=""/>` : '👕'}
+              </div>
+            </td>
+            <td>
+              <div class="item-name">${l.title || l.id}</div>
+              <div class="item-desc">${(l.description || '').substring(0, 60)}…</div>
+            </td>
+            <td class="mono-cell">$${l.price || '—'}</td>
+            <td class="mono-cell">${l.size || '—'}</td>
+            <td><span class="badge ${l.crosslisted ? 'badge-done' : 'badge-pend'}">${l.crosslisted ? '✓ done' : 'pending'}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  updateStats();
+}
+
+function toggle(id) {
+  if (selected.has(id)) selected.delete(id); else selected.add(id);
+  updateStats();
+  const row = document.querySelector(`tr[onclick*="${id}"] input`);
+  if (row) row.checked = selected.has(id);
+}
+
+function doSelectAll() { listings.forEach(l => selected.add(l.id)); renderTable(); }
+function doSelectNone() { selected.clear(); renderTable(); }
+
+async function doScrape() {
+  log('Starting scrape…', 'hi');
+  setProgress(0, 'Opening source account…');
+  document.getElementById('btn-scrape').disabled = true;
+  await fetch('/api/scrape', { method: 'POST' }).catch(() => {});
+  setTimeout(() => { document.getElementById('btn-scrape').disabled = false; }, 2000);
+}
+
+async function doCrosslist() {
+  const ids = selected.size > 0 ? [...selected] : null;
+  const count = ids ? ids.length : listings.filter(l => !l.crosslisted).length;
+  if (!confirm(`Crosslist ${count} listings to destination account?`)) return;
+  log(`Starting crosslist — ${count} listings…`, 'hi');
+  setProgress(0, 'Opening destination account…');
+  document.getElementById('btn-xlist').disabled = true;
+  await fetch('/api/crosslist', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids })
+  }).catch(() => {});
+  setTimeout(() => { document.getElementById('btn-xlist').disabled = false; }, 2000);
+}
+
+async function doReset() {
+  await fetch('/api/reset', { method: 'POST' }).catch(() => {});
+  await loadListings();
+  log('Crosslist status reset.', '');
+}
+
+async function doClearData() {
+  if (!confirm('Delete all scraped listing data?')) return;
+  await fetch('/api/listings', { method: 'DELETE' }).catch(() => {});
+  listings = []; selected.clear(); renderTable(); updateStats();
+  document.getElementById('prog-wrap').style.display = 'none';
+  log('Data cleared.', '');
+}
+
+async function loadListings() {
+  try {
+    const r = await fetch('/api/listings');
+    listings = await r.json();
+    selected = new Set(listings.filter(l => !l.crosslisted).map(l => l.id));
+    renderTable();
+  } catch {}
+}
+
+async function loadAccounts() {
+  try {
+    const r = await fetch('/api/accounts');
+    const d = await r.json();
+    renderAccount('src-acct', d.source, 'src');
+    renderAccount('dst-acct', d.dest, 'dst');
+  } catch {}
+}
+
+// SSE
+function connectSSE() {
+  const es = new EventSource('/api/stream');
+
+  es.onopen = () => {
+    document.getElementById('live-pill').style.display = 'inline-flex';
+    document.getElementById('srv-pill').textContent = 'connected';
+  };
+
+  es.onerror = () => {
+    document.getElementById('live-pill').style.display = 'none';
+    document.getElementById('srv-pill').textContent = 'server offline';
+    setTimeout(connectSSE, 3000);
+  };
+
+  es.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.message) log(d.message, d.status === 'error' ? 'err' : d.status === 'done' || d.status === 'posted' ? 'ok' : '');
+    if (d.progress) setProgress(d.progress, d.message);
+    if (d.type === 'account') { loadAccounts(); }
+    if (d.type === 'scrape' && d.status === 'done') loadListings();
+    if (d.type === 'crosslist' && d.id) {
+      const l = listings.find(x => x.id === d.id);
+      if (l) { l.crosslisted = true; renderTable(); }
+    }
+  };
+}
+
+connectSSE();
+loadAccounts();
+loadListings();
+</script>
+</body>
+</html>

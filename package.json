@@ -1,0 +1,19 @@
+{
+  "name": "riptag-crosslister",
+  "version": "1.0.0",
+  "description": "Depop to Depop crosslister with Chrome extension",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
+    "playwright": "^1.40.0",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
